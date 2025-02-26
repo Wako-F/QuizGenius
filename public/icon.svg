@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Gradient Background -->
+  <defs>
+    <linearGradient id="gradient" x1="0" y1="0" x2="32" y2="32" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#6366F1"/>
+      <stop offset="100%" stop-color="#A855F7"/>
+    </linearGradient>
+  </defs>
+  
+  <!-- Rounded Rectangle Background -->
+  <rect width="32" height="32" rx="8" fill="url(#gradient)"/>
+  
+  <!-- Letter Q -->
+  <path d="M16 8C11.5817 8 8 11.5817 8 16C8 20.4183 11.5817 24 16 24C17.8565 24 19.637 23.2372 21.0355 21.8388L19.4142 20.2175C18.4379 21.1938 17.2189 21.7143 16 21.7143C12.8482 21.7143 10.2857 19.1518 10.2857 16C10.2857 12.8482 12.8482 10.2857 16 10.2857C19.1518 10.2857 21.7143 12.8482 21.7143 16C21.7143 16.7894 21.5541 17.5788 21.2337 18.2985L23.0765 20.1413C23.6735 18.9223 24 17.4845 24 16C24 11.5817 20.4183 8 16 8Z" fill="white"/>
+  
+  <!-- Small Circle -->
+  <circle cx="22" cy="22" r="2" fill="white"/>
+</svg> 

@@ -1,0 +1,70 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --foreground-rgb: 0, 0, 0;
+  --background-start-rgb: 214, 219, 220;
+  --background-end-rgb: 255, 255, 255;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --foreground-rgb: 255, 255, 255;
+    --background-start-rgb: 0, 0, 0;
+    --background-end-rgb: 0, 0, 0;
+  }
+}
+
+body {
+  color: rgb(var(--foreground-rgb));
+  background: linear-gradient(
+      to bottom,
+      transparent,
+      rgb(var(--background-end-rgb))
+    )
+    rgb(var(--background-start-rgb));
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  /* Testimonial Color Utilities */
+  .text-indigo-400 { color: rgb(129 140 248); }
+  .text-purple-400 { color: rgb(192 132 252); }
+  .text-pink-400 { color: rgb(244 114 182); }
+  .text-blue-400 { color: rgb(96 165 250); }
+  .text-emerald-400 { color: rgb(52 211 153); }
+  
+  .bg-indigo-900\/50 { background-color: rgb(49 46 129 / 0.5); }
+  .bg-purple-900\/50 { background-color: rgb(88 28 135 / 0.5); }
+  .bg-pink-900\/50 { background-color: rgb(131 24 67 / 0.5); }
+  .bg-blue-900\/50 { background-color: rgb(30 58 138 / 0.5); }
+  .bg-emerald-900\/50 { background-color: rgb(6 78 59 / 0.5); }
+  
+  .hover\:bg-indigo-800\/50:hover { background-color: rgb(55 48 163 / 0.5); }
+  .hover\:bg-purple-800\/50:hover { background-color: rgb(107 33 168 / 0.5); }
+  .hover\:bg-pink-800\/50:hover { background-color: rgb(157 23 77 / 0.5); }
+  .hover\:bg-blue-800\/50:hover { background-color: rgb(30 64 175 / 0.5); }
+  .hover\:bg-emerald-800\/50:hover { background-color: rgb(6 95 70 / 0.5); }
+  
+  .hover\:border-indigo-500\/50:hover { border-color: rgb(99 102 241 / 0.5); }
+  .hover\:border-purple-500\/50:hover { border-color: rgb(168 85 247 / 0.5); }
+  .hover\:border-pink-500\/50:hover { border-color: rgb(236 72 153 / 0.5); }
+  .hover\:border-blue-500\/50:hover { border-color: rgb(59 130 246 / 0.5); }
+  .hover\:border-emerald-500\/50:hover { border-color: rgb(16 185 129 / 0.5); }
+
+  /* Gradient Animation */
+  .animate-gradient {
+    background-size: 200% 200%;
+    animation: gradient 8s ease infinite;
+  }
+
+  @keyframes gradient {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+}
