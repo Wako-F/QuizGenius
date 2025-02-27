@@ -33,7 +33,7 @@ const StatCard = ({ title, value, description, icon }: {
 );
 
 export default function Stats() {
-  const { user, userProfile, loading } = useAuth();
+  const { user, userProfile, loading, refreshUserProfile } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
@@ -41,6 +41,16 @@ export default function Stats() {
       router.push("/");
     }
   }, [user, loading, router]);
+
+  // Add refresh when component mounts to ensure latest data
+  useEffect(() => {
+    if (user && !loading) {
+      console.log("Stats page - refreshing user profile to get latest data");
+      refreshUserProfile().catch(error => {
+        console.error("Error refreshing user profile on stats page:", error);
+      });
+    }
+  }, [user, loading, refreshUserProfile]);
 
   if (loading || !user || !userProfile) {
     return (
@@ -67,6 +77,19 @@ export default function Stats() {
     : '0.0';
   
   const timeSpentHours = (stats.timeSpent / 60).toFixed(1);
+
+  // Calculate gauntlet stats
+  const gauntletScores = userProfile.gauntletScores || [];
+  const totalGauntletChallenges = gauntletScores.length;
+  const bestGauntletScore = gauntletScores.length > 0
+    ? Math.max(...gauntletScores.map(score => score.score))
+    : 0;
+  const averageGauntletScore = gauntletScores.length > 0
+    ? Math.round(gauntletScores.reduce((sum, score) => sum + score.score, 0) / gauntletScores.length)
+    : 0;
+  const totalGauntletPoints = gauntletScores.length > 0
+    ? gauntletScores.reduce((sum, score) => sum + score.score, 0)
+    : 0;
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900">
@@ -219,6 +242,67 @@ export default function Stats() {
                   </div>
                 </div>
               </div>
+            </motion.div>
+
+            {/* Gauntlet Stats */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4 }}
+              className="bg-gray-800/30 backdrop-blur-sm rounded-xl p-6 border border-gray-700 md:col-span-2"
+            >
+              <h2 className="text-xl font-semibold text-white mb-6 flex items-center gap-2">
+                <span className="text-yellow-400">⚡</span> Gauntlet Statistics
+              </h2>
+              
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="bg-gray-800/50 rounded-lg p-4 border border-gray-700">
+                  <p className="text-gray-400 text-sm">Total Challenges</p>
+                  <p className="text-2xl font-bold text-purple-400 mt-1">{totalGauntletChallenges}</p>
+                </div>
+                
+                <div className="bg-gray-800/50 rounded-lg p-4 border border-gray-700">
+                  <p className="text-gray-400 text-sm">Best Score</p>
+                  <p className="text-2xl font-bold text-indigo-400 mt-1">{bestGauntletScore}</p>
+                </div>
+                
+                <div className="bg-gray-800/50 rounded-lg p-4 border border-gray-700">
+                  <p className="text-gray-400 text-sm">Average Score</p>
+                  <p className="text-2xl font-bold text-blue-400 mt-1">{averageGauntletScore}</p>
+                </div>
+                
+                <div className="bg-gray-800/50 rounded-lg p-4 border border-gray-700">
+                  <p className="text-gray-400 text-sm">Total Points</p>
+                  <p className="text-2xl font-bold text-yellow-400 mt-1">{totalGauntletPoints}</p>
+                </div>
+              </div>
+              
+              {gauntletScores.length > 0 && (
+                <div className="mt-6">
+                  <h3 className="text-lg font-medium text-white mb-3">Recent Gauntlet Performances</h3>
+                  <div className="bg-gray-800/50 rounded-lg border border-gray-700 overflow-hidden">
+                    <div className="grid grid-cols-6 gap-2 text-sm text-gray-400 p-3 border-b border-gray-700">
+                      <div className="col-span-2">Topic</div>
+                      <div>Score</div>
+                      <div>Correct</div>
+                      <div>Streak</div>
+                      <div>Date</div>
+                    </div>
+                    {gauntletScores
+                      .sort((a, b) => b.date - a.date)
+                      .slice(0, 5)
+                      .map(score => (
+                        <div key={score.id} className="grid grid-cols-6 gap-2 p-3 border-b border-gray-700 text-sm hover:bg-gray-700/30">
+                          <div className="col-span-2 text-white">{score.topic}</div>
+                          <div className="text-indigo-400 font-medium">{score.score}</div>
+                          <div>{score.correctAnswers}/{score.questionsAnswered}</div>
+                          <div>{score.bestStreak}</div>
+                          <div>{new Date(score.date).toLocaleDateString()}</div>
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              )}
             </motion.div>
           </div>
         </div>

@@ -52,31 +52,73 @@ export default function QuizResults({ stats, onShare, onTryAgain, isRetryMode, e
         lastQuizDate: null
       };
 
-      // Calculate new average score
-      const totalQuizzes = isRetryMode ? currentStats.quizzesTaken : currentStats.quizzesTaken + 1;
-      const newAverageScore = Math.round(
-        ((currentStats.averageScore * currentStats.quizzesTaken) + accuracy) / (isRetryMode ? currentStats.quizzesTaken : totalQuizzes)
-      ) || 0;
+      // Type assertion to help TypeScript understand the structure
+      type UserStats = typeof currentStats;
 
-      // Check if this is a new day for the learning streak
-      const lastQuizDate = currentStats.lastQuizDate ? new Date(currentStats.lastQuizDate) : null;
-      const today = new Date();
-      const isNewDay = !lastQuizDate || 
-        lastQuizDate.getDate() !== today.getDate() ||
-        lastQuizDate.getMonth() !== today.getMonth() ||
-        lastQuizDate.getFullYear() !== today.getFullYear();
+      // Get current timestamp
+      const now = new Date();
+      const currentTimestamp = now.getTime();
+      
+      // Check if this is a new day for the learning streak (use proper 24-hour check)
+      let shouldIncrementStreak = false;
+      
+      // Convert last quiz date to timestamp, handling various formats
+      let lastQuizTimestamp = 0;
+      
+      // Using type assertion to avoid TypeScript errors with "never" type
+      const typedStats = currentStats as UserStats;
+
+      if (typedStats.lastQuizDate) {
+        if (typedStats.lastQuizDate instanceof Date) {
+          lastQuizTimestamp = typedStats.lastQuizDate.getTime();
+        } else if (typeof typedStats.lastQuizDate === 'number') {
+          lastQuizTimestamp = typedStats.lastQuizDate;
+        } else {
+          try {
+            // Try parsing as string
+            const parsedDate = new Date(typedStats.lastQuizDate as any);
+            if (!isNaN(parsedDate.getTime())) {
+              lastQuizTimestamp = parsedDate.getTime();
+            }
+          } catch (e) {
+            console.error("Error parsing lastQuizDate:", e);
+          }
+        }
+      }
+      
+      // Determine if we should increment the streak
+      if (lastQuizTimestamp === 0) {
+        // First quiz or invalid date, start a new streak
+        shouldIncrementStreak = true;
+      } else {
+        // Calculate time difference in hours
+        const hoursDiff = (currentTimestamp - lastQuizTimestamp) / (1000 * 60 * 60);
+        
+        // Consider it a new day for streak if more than 20 hours have passed
+        if (hoursDiff >= 20) {
+          shouldIncrementStreak = true;
+          
+          // Reset streak if it's been more than 48 hours
+          if (hoursDiff > 48) {
+            console.log("Streak reset: It's been more than 48 hours since the last quiz");
+            typedStats.learningStreak = 0;
+          }
+        }
+      }
 
       // Update stats - don't increment quizzesTaken for retries
       const updatedStats = {
         quizzesTaken: isRetryMode ? currentStats.quizzesTaken : (currentStats.quizzesTaken || 0) + 1,
         quizzesCreated: currentStats.quizzesCreated || 0,
-        averageScore: newAverageScore,
-        learningStreak: isNewDay ? (currentStats.learningStreak || 0) + 1 : (currentStats.learningStreak || 0),
+        averageScore: Math.round(
+          ((currentStats.averageScore * currentStats.quizzesTaken) + accuracy) / (isRetryMode ? currentStats.quizzesTaken : (currentStats.quizzesTaken || 0) + 1)
+        ) || 0,
+        learningStreak: shouldIncrementStreak ? (currentStats.learningStreak || 0) + 1 : (currentStats.learningStreak || 0),
         totalQuestions: (currentStats.totalQuestions || 0) + (isRetryMode ? 0 : stats.totalQuestions),
         correctAnswers: (currentStats.correctAnswers || 0) + (isRetryMode ? 0 : stats.correctAnswers),
         topicsMastered: (currentStats.topicsMastered || 0) + (accuracy >= 80 && !isRetryMode ? 1 : 0),
         timeSpent: (currentStats.timeSpent || 0) + Math.round(stats.timeSpent / 60), // Convert to minutes
-        lastQuizDate: today
+        lastQuizDate: now // Store as Date object 
       };
 
       // Initialize arrays if they don't exist
@@ -92,10 +134,10 @@ export default function QuizResults({ stats, onShare, onTryAgain, isRetryMode, e
         if (quizIndex !== -1) {
           updatedQuizzes[quizIndex] = {
             ...updatedQuizzes[quizIndex],
-            lastAttemptAt: today,
+            lastAttemptAt: now,
             attempts: [
               {
-                timestamp: today,
+                timestamp: now,
                 score: accuracy,
                 timeSpent: stats.timeSpent
               },
@@ -111,10 +153,10 @@ export default function QuizResults({ stats, onShare, onTryAgain, isRetryMode, e
           topic: stats.topic,
           difficulty: stats.difficulty,
           questions: stats.questions,
-          createdAt: today,
-          lastAttemptAt: today,
+          createdAt: now,
+          lastAttemptAt: now,
           attempts: [{
-            timestamp: today,
+            timestamp: now,
             score: accuracy,
             timeSpent: stats.timeSpent
           }]
@@ -128,7 +170,7 @@ export default function QuizResults({ stats, onShare, onTryAgain, isRetryMode, e
         topic: stats.topic,
         score: accuracy,
         difficulty: stats.difficulty,
-        timestamp: today,
+        timestamp: now,
         details: `${isRetryMode ? 'Retried' : 'Completed'} ${stats.difficulty} quiz on ${stats.topic} with ${accuracy}% accuracy`,
         quizId: isRetryMode ? existingQuizId : updatedQuizzes[0].id
       };

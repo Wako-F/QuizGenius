@@ -5,10 +5,12 @@ import { useAuth } from "@/lib/hooks/useAuth";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import AvatarPreview from "@/app/profile-setup/components/AvatarPreview";
+import { usePathname } from "next/navigation";
 
 export default function Header() {
   const { user, userProfile, signOut } = useAuth();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const pathname = usePathname();
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -29,18 +31,59 @@ export default function Header() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  const isActive = (path: string) => {
+    return pathname === path;
+  };
+
   return (
     <nav className="fixed top-0 left-0 right-0 bg-gray-900/80 backdrop-blur-md z-50 border-b border-gray-800">
       <div className="container mx-auto px-4 py-3 flex justify-between items-center">
-        <Link href="/dashboard" className="flex items-center gap-2 group">
-          <div className="w-8 h-8 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-lg flex items-center justify-center text-white font-bold relative overflow-hidden transition-all duration-300 group-hover:scale-110">
-            <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-20 transition-opacity"></div>
-            <span className="relative z-10">Q</span>
-          </div>
-          <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-purple-400">
-            QuizGenius
-          </h1>
-        </Link>
+        <div className="flex items-center gap-6">
+          <Link href="/dashboard" className="flex items-center gap-2 group">
+            <div className="w-8 h-8 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-lg flex items-center justify-center text-white font-bold relative overflow-hidden transition-all duration-300 group-hover:scale-110">
+              <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-20 transition-opacity"></div>
+              <span className="relative z-10">Q</span>
+            </div>
+            <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-purple-400">
+              QuizGenius
+            </h1>
+          </Link>
+          
+          {user && (
+            <div className="hidden md:flex items-center gap-4">
+              <Link 
+                href="/dashboard" 
+                className={`text-sm font-medium px-3 py-2 rounded-lg transition-colors ${
+                  isActive('/dashboard') 
+                    ? 'bg-indigo-500/20 text-indigo-300' 
+                    : 'text-gray-400 hover:text-white hover:bg-gray-800'
+                }`}
+              >
+                Dashboard
+              </Link>
+              <Link 
+                href="/create-quiz" 
+                className={`text-sm font-medium px-3 py-2 rounded-lg transition-colors ${
+                  isActive('/create-quiz') 
+                    ? 'bg-indigo-500/20 text-indigo-300' 
+                    : 'text-gray-400 hover:text-white hover:bg-gray-800'
+                }`}
+              >
+                Create Quiz
+              </Link>
+              <Link 
+                href="/gauntlet" 
+                className={`text-sm font-medium px-3 py-2 rounded-lg transition-colors flex items-center gap-1 ${
+                  isActive('/gauntlet') 
+                    ? 'bg-indigo-500/20 text-indigo-300' 
+                    : 'text-gray-400 hover:text-white hover:bg-gray-800'
+                }`}
+              >
+                <span>⚡</span> Gauntlet Mode
+              </Link>
+            </div>
+          )}
+        </div>
 
         {user && (
           <div className="flex items-center gap-4">
@@ -146,6 +189,13 @@ export default function Header() {
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                         </svg>
                         Preferences
+                      </Link>
+                      <Link
+                        href="/gauntlet"
+                        className="flex items-center gap-3 px-4 py-2 text-sm text-gray-300 hover:text-white hover:bg-gray-700/50 md:hidden"
+                      >
+                        <span className="text-yellow-400">⚡</span>
+                        Gauntlet Mode
                       </Link>
                     </div>
 

@@ -33,8 +33,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const refreshUserProfile = async () => {
     if (user) {
+      console.log("refreshUserProfile - Fetching profile for user:", user.uid);
       const profile = await getUserProfile(user.uid);
+      console.log("refreshUserProfile - Fetched profile:", profile);
       setUserProfile(profile);
+      console.log("refreshUserProfile - Set userProfile in state");
+    } else {
+      console.log("refreshUserProfile - No user logged in");
     }
   };
 
