@@ -1,7 +1,0 @@
-{
-  "/my-quizzes/page": "app/my-quizzes/page.js",
-  "/favicon.ico/route": "app/favicon.ico/route.js",
-  "/dashboard/page": "app/dashboard/page.js",
-  "/create-quiz/page": "app/create-quiz/page.js",
-  "/api/quiz/generate/route": "app/api/quiz/generate/route.js"
-}
