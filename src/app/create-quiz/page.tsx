@@ -1,13 +1,14 @@
 "use client";
 
-import { useAuth } from "@/lib/hooks/useAuth";
+import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
-import Header from "@/components/Header";
 import { motion } from "framer-motion";
+import { useAuth } from "@/lib/hooks/useAuth";
+import Header from "@/components/Header";
+import { QuizQuestion, updateUserProfile, getUserProfile } from "@/lib/firebase/userUtils";
 import QuizMode from "./QuizMode";
 import QuizResults from "./QuizResults";
-import { QuizQuestion } from "@/lib/firebase/userUtils";
+import Link from "next/link";
 
 interface FormState {
   topic: string;
@@ -17,8 +18,10 @@ interface FormState {
   timeLimit?: number;
 }
 
+// Define quiz states for the main page flow
 type QuizState = "form" | "quiz" | "results";
 
+// Interface for quiz statistics
 interface QuizStats {
   totalQuestions: number;
   correctAnswers: number;
@@ -33,69 +36,73 @@ export default function CreateQuiz() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const mode = searchParams.get('mode');
-  const quizId = searchParams.get('quizId');
-
+  const quizId = searchParams.get('id');
+  
+  // State for form, quiz, and results
   const [quizState, setQuizState] = useState<QuizState>("form");
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [generatedQuestions, setGeneratedQuestions] = useState<QuizQuestion[] | null>(null);
   const [quizStats, setQuizStats] = useState<QuizStats | null>(null);
-
+  const [isGenerating, setIsGenerating] = useState(false);
   const [formState, setFormState] = useState<FormState>({
     topic: "",
-    difficulty: userProfile?.preferences?.difficulty || "medium",
-    numberOfQuestions: parseInt(userProfile?.preferences?.quizLength?.split("-")[0] || "10"),
-    preferredStyle: "mixed"
+    difficulty: "medium",
+    numberOfQuestions: 10,
+    preferredStyle: "mixed",
   });
 
-  // Handle retry mode
+  // Effect for retry mode
   useEffect(() => {
-    if (mode === 'retry' && quizId && userProfile?.savedQuizzes) {
-      const savedQuiz = userProfile.savedQuizzes.find(q => q.id === quizId);
+    if (mode === 'retry' && quizId && userProfile) {
+      const savedQuiz = userProfile.savedQuizzes?.find(q => q.id === quizId);
       if (savedQuiz) {
-        setFormState(prev => ({
-          ...prev,
+        // Pre-fill the form with saved quiz data
+        setFormState({
           topic: savedQuiz.topic,
           difficulty: savedQuiz.difficulty as "easy" | "medium" | "hard" | "expert",
-          numberOfQuestions: savedQuiz.questions.length
-        }));
+          numberOfQuestions: savedQuiz.questions.length,
+          preferredStyle: "mixed",
+        });
         setGeneratedQuestions(savedQuiz.questions);
-        setQuizState("quiz");
       }
     }
   }, [mode, quizId, userProfile]);
 
-  useEffect(() => {
-    if (!loading && !user) {
-      router.push("/");
-    }
-  }, [user, loading, router]);
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsGenerating(true);
-    setError(null);
+    if (!formState.topic) {
+      console.error("Please enter a topic");
+      return;
+    }
 
+    setIsGenerating(true);
+    
     try {
-      const response = await fetch("/api/quiz/generate", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+      // In retry mode, we already have the questions
+      if (mode === 'retry' && generatedQuestions) {
+        setQuizState("quiz");
+        setIsGenerating(false);
+        return;
+      }
+      
+      // Generate new questions using API
+      const response = await fetch('/api/quiz/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formState),
       });
-
-      const data = await response.json();
       
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to generate quiz");
+      if (!response.ok) throw new Error('Failed to generate quiz');
+      
+      const data = await response.json();
+      if (data.questions && data.questions.length > 0) {
+        setGeneratedQuestions(data.questions);
+        setQuizState("quiz");
+      } else {
+        throw new Error('No questions generated');
       }
-
-      setGeneratedQuestions(data.questions);
-      setQuizState("quiz");
     } catch (error) {
-      console.error("Error:", error);
-      setError(error instanceof Error ? error.message : "Failed to generate quiz. Please try again.");
+      console.error('Error generating quiz:', error);
+      console.error('Error generating quiz. Please try again.');
     } finally {
       setIsGenerating(false);
     }
@@ -136,7 +143,7 @@ export default function CreateQuiz() {
     <main className="min-h-screen bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900">
       <Header />
       
-      <div className="container mx-auto px-4 py-24">
+      <div className="container mx-auto px-4 pt-24 pb-12">
         {quizState === "form" && (
           <div className="max-w-3xl mx-auto">
             <motion.div
@@ -158,67 +165,48 @@ export default function CreateQuiz() {
                 </p>
               </div>
 
-              {/* Main Form Section */}
-              <div className="p-8">
-                {error && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="mb-8 p-4 bg-red-500/10 border border-red-500/50 rounded-xl"
-                  >
-                    <div className="flex items-center gap-3">
-                      <svg className="w-5 h-5 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      <p className="text-red-400 font-medium">{error}</p>
-                    </div>
-                  </motion.div>
-                )}
-
+              {/* Form Content */}
+              <div className="px-8 py-10">
                 <form onSubmit={handleSubmit} className="space-y-8">
-                  {/* Topic Input with Enhanced Visual Feedback */}
+                  {/* Quiz Topic */}
                   <div className="space-y-4">
                     <label htmlFor="topic" className="block text-lg font-medium text-white">
-                      What would you like to learn about?
-                      <span className="ml-1 text-sm text-gray-400">(required)</span>
+                      Quiz Topic
                     </label>
                     <div className="relative">
                       <input
                         type="text"
                         id="topic"
+                        placeholder="Enter a specific topic or subject..."
                         value={formState.topic}
                         onChange={(e) => setFormState(prev => ({ ...prev, topic: e.target.value }))}
-                        placeholder="Enter a topic (e.g., 'Ancient Rome', 'Basic JavaScript')"
-                        className="w-full px-5 py-4 bg-gray-900/50 border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                        className="w-full px-5 py-4 bg-gray-900 border-2 border-gray-700 rounded-xl text-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
+                        disabled={mode === 'retry'}
                         required
-                        readOnly={mode === 'retry'}
                       />
-                      {formState.topic && (
-                        <motion.div
-                          initial={{ opacity: 0, scale: 0.5 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          className="absolute right-4 top-1/2 -translate-y-1/2 text-green-400"
-                        >
-                          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                          </svg>
-                        </motion.div>
-                      )}
+                      <div className="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-indigo-400">
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                      </div>
                     </div>
+                    <p className="text-gray-400 text-sm">
+                      Be specific to get better questions (e.g. "React Hooks" instead of just "JavaScript")
+                    </p>
                   </div>
 
-                  {/* Quiz Configuration Grid */}
+                  {/* Quiz Details Grid Section */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* Difficulty Selection */}
+                    {/* Difficulty */}
                     <div className="space-y-4">
                       <label htmlFor="difficulty" className="block text-lg font-medium text-white">
-                        Difficulty Level
+                        Difficulty
                       </label>
                       <div className="relative">
                         <select
                           id="difficulty"
                           value={formState.difficulty}
-                          onChange={(e) => setFormState(prev => ({ ...prev, difficulty: e.target.value as FormState['difficulty'] }))}
+                          onChange={(e) => setFormState(prev => ({ ...prev, difficulty: e.target.value as any }))}
                           className="w-full px-5 py-4 bg-gray-900 border-2 border-gray-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all appearance-none cursor-pointer hover:border-indigo-500"
                           disabled={mode === 'retry'}
                         >
@@ -248,10 +236,10 @@ export default function CreateQuiz() {
                           className="w-full px-5 py-4 bg-gray-900 border-2 border-gray-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all appearance-none cursor-pointer hover:border-indigo-500"
                           disabled={mode === 'retry'}
                         >
-                          <option value="5">5 Questions</option>
-                          <option value="10">10 Questions</option>
-                          <option value="15">15 Questions</option>
-                          <option value="20">20 Questions</option>
+                          <option value="5">5 questions</option>
+                          <option value="10">10 questions</option>
+                          <option value="15">15 questions</option>
+                          <option value="20">20 questions</option>
                         </select>
                         <div className="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-indigo-400">
                           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -345,35 +333,30 @@ export default function CreateQuiz() {
                         disabled={mode === 'retry'}
                       >
                         <div className="text-center">
-                          <span className="text-2xl mb-2">🎯</span>
+                          <span className="text-2xl mb-2">🔄</span>
                           <p className="font-medium">Mixed</p>
-                          <p className="text-sm opacity-75">Both styles</p>
+                          <p className="text-sm opacity-75">Balanced approach</p>
                         </div>
                       </button>
                     </div>
                   </div>
 
-                  {/* Submit Button with Loading State */}
-                  <div className="pt-4">
+                  {/* Action Buttons */}
+                  <div className="flex flex-col sm:flex-row gap-4 pt-4">
                     <button
                       type="submit"
-                      disabled={isGenerating || !formState.topic.trim()}
-                      className="w-full relative px-6 py-4 bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-xl font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-all group overflow-hidden"
+                      disabled={isGenerating || !formState.topic}
+                      className="flex-1 px-6 py-4 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-indigo-500/20"
                     >
-                      <div className="absolute inset-0 bg-white/20 group-hover:bg-white/30 transition-colors" />
                       {isGenerating ? (
-                        <div className="flex items-center justify-center gap-3">
-                          <div className="w-5 h-5 border-t-2 border-b-2 border-white rounded-full animate-spin" />
-                          <span>{mode === 'retry' ? 'Starting Quiz...' : 'Generating Quiz...'}</span>
-                        </div>
-                      ) : (
-                        <span className="flex items-center justify-center gap-2">
-                          {mode === 'retry' ? 'Start Quiz' : 'Generate Quiz'}
-                          <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                        <div className="flex items-center justify-center">
+                          <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                           </svg>
-                        </span>
-                      )}
+                          Generating Quiz...
+                        </div>
+                      ) : mode === 'retry' ? 'Start Quiz' : 'Generate Quiz'}
                     </button>
                   </div>
                 </form>
@@ -383,23 +366,25 @@ export default function CreateQuiz() {
         )}
 
         {quizState === "quiz" && generatedQuestions && (
-          <QuizMode
-            questions={generatedQuestions}
-            topic={formState.topic}
-            difficulty={formState.difficulty}
-            onComplete={handleQuizComplete}
-            savedQuizId={quizId || undefined}
-          />
+          <div className="max-w-4xl mx-auto">
+            <QuizMode
+              questions={generatedQuestions}
+              topic={formState.topic}
+              difficulty={formState.difficulty}
+              onComplete={handleQuizComplete}
+              savedQuizId={quizId || undefined}
+            />
+          </div>
         )}
 
         {quizState === "results" && quizStats && (
-          <QuizResults
-            stats={quizStats}
-            onShare={handleShare}
-            onTryAgain={handleTryAgain}
-            isRetryMode={mode === 'retry'}
-            existingQuizId={quizId || undefined}
-          />
+          <div className="max-w-4xl mx-auto">
+            <QuizResults
+              stats={quizStats}
+              onShare={handleShare}
+              onTryAgain={handleTryAgain}
+            />
+          </div>
         )}
       </div>
     </main>

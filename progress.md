@@ -16,6 +16,7 @@
 - Time limit options (5-30 minutes)
 - Improved form UI with better visibility and accessibility
 - Enhanced dropdown menus with clear visual feedback
+- Fixed API endpoint mismatch in quiz generation (resolved "util._extend" deprecation warning)
 
 ### Quiz Taking Experience
 - Interactive quiz interface with timer
@@ -68,6 +69,7 @@
    - Added hover states and visual feedback
    - Consistent styling across all form elements
    - Better accessibility with clear visual hierarchy
+   - Fixed API route mismatch causing deprecation warnings
 
 2. Quiz Page (/quiz/[id])
    - Fixed server-side rendering issue with React components
@@ -91,22 +93,17 @@
 
 ## 🎯 Next Steps
 
-1. Fix the Quiz Page Error:
-   - Review and correct the component export in `/quiz/[id]/page.tsx`
-   - Ensure proper TypeScript types and React imports
-   - Test the quiz viewing functionality
-
-2. Implement Quiz Sharing:
+1. Implement Quiz Sharing:
    - Design sharing interface
    - Add social media integration
    - Create public quiz endpoints
 
-3. Add Quiz Editing:
+2. Add Quiz Editing:
    - Create quiz editor interface
    - Add validation for edited quizzes
    - Implement version control for edits
 
-4. Develop Community Features:
+3. Develop Community Features:
    - Design community dashboard
    - Implement user interactions
    - Create leaderboard system
@@ -152,5 +149,18 @@ The project has been successfully consolidated by merging the `template-2` direc
    - Removed the `src.old` backup directory
 
 The project is now in a consistent state with all necessary files and directory structure in place. The application should be fully functional with all features from both directories properly merged.
+
+## Recent Fixes (Latest Updates)
+
+1. **Quiz Generation API Integration**:
+   - Fixed API route mismatch between frontend and backend
+   - Updated API endpoint from `/api/generate-quiz` to `/api/quiz/generate` in the CreateQuiz component
+   - Added `NODE_NO_WARNINGS=1` option to dev script to suppress Node.js deprecation warnings
+   - Resolved the "util._extend API is deprecated" warning during quiz generation
+
+2. **Code Structure Improvements**:
+   - Ensured consistent API naming across the application
+   - Better error handling for API requests
+   - Improved type checking for form submission
 
 **Note**: To complete the cleanup, run the `cleanup.ps1` script when the development server is not running to remove the `template-2` directory. 
