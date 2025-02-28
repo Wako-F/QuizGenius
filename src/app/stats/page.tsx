@@ -6,6 +6,47 @@ import { useEffect } from "react";
 import Header from "@/components/Header";
 import { motion } from "framer-motion";
 
+// Helper function to format dates properly
+const formatDate = (timestamp: any): string => {
+  if (!timestamp) return 'N/A';
+  
+  let date: Date;
+  
+  // Handle different timestamp formats
+  if (timestamp instanceof Date) {
+    date = timestamp;
+  } else if (typeof timestamp === 'number') {
+    date = new Date(timestamp);
+  } else if (typeof timestamp === 'string') {
+    // Try to parse as ISO string or timestamp
+    const parsed = Date.parse(timestamp);
+    if (isNaN(parsed)) {
+      return 'Invalid date';
+    }
+    date = new Date(parsed);
+  } else {
+    // Handle other cases like Firestore timestamps
+    try {
+      // Try to convert to date if it has toDate() method (Firestore timestamp)
+      if (timestamp.toDate && typeof timestamp.toDate === 'function') {
+        date = timestamp.toDate();
+      } else {
+        return 'Invalid date';
+      }
+    } catch (e) {
+      return 'Invalid date';
+    }
+  }
+  
+  // Check if date is valid
+  if (isNaN(date.getTime())) {
+    return 'Invalid date';
+  }
+  
+  // Format the date
+  return date.toLocaleDateString();
+};
+
 const StatCard = ({ title, value, description, icon }: { 
   title: string;
   value: string | number;
@@ -289,7 +330,12 @@ export default function Stats() {
                       <div>Date</div>
                     </div>
                     {gauntletScores
-                      .sort((a, b) => b.date - a.date)
+                      .sort((a, b) => {
+                        // Safe sorting that handles invalid dates
+                        const dateA = a.date ? a.date : 0;
+                        const dateB = b.date ? b.date : 0;
+                        return dateB - dateA;
+                      })
                       .slice(0, 5)
                       .map(score => (
                         <div key={score.id} className="grid grid-cols-6 gap-2 p-3 border-b border-gray-700 text-sm hover:bg-gray-700/30">
@@ -297,7 +343,7 @@ export default function Stats() {
                           <div className="text-indigo-400 font-medium">{score.score}</div>
                           <div>{score.correctAnswers}/{score.questionsAnswered}</div>
                           <div>{score.bestStreak}</div>
-                          <div>{new Date(score.date).toLocaleDateString()}</div>
+                          <div>{formatDate(score.date)}</div>
                         </div>
                       ))}
                   </div>

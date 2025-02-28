@@ -10,6 +10,47 @@ import Link from "next/link";
 import { GauntletScore } from "@/lib/types/user";
 import { ensureUserProfileFields } from "@/lib/firebase/userUtils";
 
+// Helper function to format dates properly
+const formatDate = (timestamp: any): string => {
+  if (!timestamp) return 'N/A';
+  
+  let date: Date;
+  
+  // Handle different timestamp formats
+  if (timestamp instanceof Date) {
+    date = timestamp;
+  } else if (typeof timestamp === 'number') {
+    date = new Date(timestamp);
+  } else if (typeof timestamp === 'string') {
+    // Try to parse as ISO string or timestamp
+    const parsed = Date.parse(timestamp);
+    if (isNaN(parsed)) {
+      return 'Invalid date';
+    }
+    date = new Date(parsed);
+  } else {
+    // Handle other cases like Firestore timestamps
+    try {
+      // Try to convert to date if it has toDate() method (Firestore timestamp)
+      if (timestamp.toDate && typeof timestamp.toDate === 'function') {
+        date = timestamp.toDate();
+      } else {
+        return 'Invalid date';
+      }
+    } catch (e) {
+      return 'Invalid date';
+    }
+  }
+  
+  // Check if date is valid
+  if (isNaN(date.getTime())) {
+    return 'Invalid date';
+  }
+  
+  // Format the date
+  return date.toLocaleDateString();
+};
+
 // Function to get available topics
 const getAvailableTopics = async (): Promise<string[]> => {
   // For simplicity, return a static list of topics
@@ -439,7 +480,7 @@ export default function GauntletPage() {
                         <div className="text-right">
                           <p className="text-indigo-400 font-bold text-2xl">{score.score}</p>
                           <p className="text-gray-400 text-xs">
-                            {new Date(score.date).toLocaleDateString()}
+                            {formatDate(score.date)}
                           </p>
                         </div>
                       </div>
